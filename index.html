@@ -1,0 +1,218 @@
+<html>
+
+<head>
+	<title>Flow Miner</title>
+	<meta http-equiv="Content-Type" content="text/html;charset=ISO-8859-1">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js"
+		integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.43.0/codemirror.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.43.0/codemirror.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.43.0/mode/groovy/groovy.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+	<script>
+		// Syntax colors and line numbers on the input box
+		window.onload = function () {
+			editor = CodeMirror.fromTextArea(document.getElementById("input"), {
+				lineNumbers: true,
+				mode: "text/x-groovy",
+			});
+		};
+
+		// Example buttons functionality. Loads examples texts and puts them in the input box
+		function sample(value) {
+			inputExample = '';
+			switch (value) {
+				case 'sample':
+					inputExample = sampleExample;
+					break;
+				case 'flow':
+					inputExample = flowExample;
+					break;
+				case 'path':
+					inputExample = pathExample;
+					break;
+				case 'context':
+					inputExample = contextExample;
+					break;
+			}
+			editor.setValue(inputExample);
+		};
+
+		//Sends the text from the input box to the backend and displays the recieved results in the output box 
+		function analyse() {
+			var input = editor;
+			var output = document.getElementById("output");
+			var data = [];
+
+			// $("#button").attr("disabled", true);
+			$(".spinner").fadeIn();
+
+			$.ajax({
+				url: '/analyse',
+				method: 'POST',
+				// async: false,
+				data: {
+					code: input.getValue()
+				},
+				success: function (data) {
+					output.value = data;
+					// $("#button").attr("disabled", false);
+					$(".spinner").fadeOut();
+				},
+
+				error: function (err) {
+					console.log(err);
+					if (err.statusText == 'timeout') {
+						output.value = "Timeout";
+					} else {
+						output.value = "Failed";
+					}
+					// $("#button").attr("disabled", false);
+					$(".spinner").fadeOut();
+				},
+				timeout: 60000
+			});
+		}
+	</script>
+	<style>
+		.CodeMirror,
+		#output {
+			font-family: "Consolas", "Monaco", "Lucida Console", "Liberation Mono", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Courier New", "monospace";
+			border: 1px #ccc solid;
+			border-radius: 4px;
+			resize: vertical;
+			height: 40%;
+		}
+
+		#output {
+			white-space: pre;
+		}
+
+		label {
+			font-weight: normal !important;
+		}
+
+		.copyright {
+			text-align: left;
+			font-size: smaller;
+		}
+
+		#about:hover {
+			text-decoration: none;
+			cursor: pointer;
+		}
+
+		#about:link {
+			text-decoration: none;
+		}
+
+		#about:visited {
+			text-decoration: none;
+		}
+
+		.spinner {
+			animation: spin 1.5s linear infinite;
+			position: relative;
+			width: 20px;
+			height: 20px;
+			border: 2px solid #1f94ed;
+			border-left: 0;
+			border-top: 0;
+			border-radius: 50%;
+			display: none;
+		}
+
+		@keyframes spin {
+			0% {
+				transform: rotate(0deg);
+			}
+
+			100% {
+				transform: rotate(360deg);
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<nav class="navbar navbar-default" style="display: flex; align-items: center">
+		<a class="navbar-brand">Flow Miner</a>
+		<div class="spinner"></div>
+		<a id="about" data-toggle="modal" data-target="#myModal"
+			style="margin-left: auto; margin-right: 20px;">About</a>
+	</nav>
+	<div class="form-group" style=" padding: 0 20px">
+		<div>
+			<button type="button" class="btn btn-secondary" onclick="sample('sample')">Sample</button>
+			<button type="button" class="btn btn-secondary" onclick="sample('flow')">Flow-sensitive </button>
+			<button type="button" class="btn btn-secondary" onclick="sample('path')">Path-sensitive</button>
+			<button type="button" class="btn btn-secondary" onclick="sample('context')">Context-sensitive</button>
+		</div>
+		<div style="margin-top:20px">
+			<textarea id="input" class="form-control m-5" rows="6" autocomplete="off"></textarea>
+		</div>
+
+		<div style="margin-top:20px; text-align: center">
+			<button id="button" type="button" class="btn mt-5" onclick="analyse()"> Analyse </button>
+		</div>
+
+		<div style="margin-top:20px">
+			<textarea id="output" class="form-control m-5" rows="6" placeholder="Output" autocomplete="off" required
+				readonly></textarea>
+		</div>
+	</div>
+
+
+	<div id="myModal" class="modal fade" role="dialog">
+		<div class="modal-dialog">
+			<!-- Modal content-->
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<h4 class="modal-title">About FlowMiner</h4>
+				</div>
+				<div class="modal-body">
+					<p>
+						The FlowsMiner tool is implemented in Python 3 and uses text mining techniques to identify
+						tainted flows. The tool processes the source code of a SmartApp to put the source code in a so
+						called standard format before tokenizing the source code. This reduces the number of cases to be
+						handled at each step while identifying the tainted flows. The tool starts by identifying the
+						sources of a SmartApp. Once the sources set is identified, the sinks are read from a locally
+						deployed file named as Sinks.txt.
+						This tool uses a fixed set of sinks provided in the Sinks.txt
+						file. However, the tool provides flexibility to update the sinks and is capable of working with
+						any set of sinks. The set of sources and sinks are used to identify tainted flows. The tool
+						tokenizes the source code to check if it contains a sink. If the source code contains a sink, it
+						proceeds further to identify tainted flows. The usage of FlowsMiner is fairly straightforward,
+						click of a button allows users to select a file containing source code of a SmartApp. The tool
+						analyzes the selected file to display the tainted flows.
+					</p>
+					</p>
+				</div>
+				<div class="modal-footer">
+					<p class="copyright">© CRESSET Lab, Ryerson University.</p>
+					<p class="copyright">Developed by: Hajra Naeem as part of MSc. thesis under supervision of Prof.
+						Manar Alalfi</p>
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+</body>
+
+</html>
+
+<script>
+	// Examples text
+	sampleExample =
+		"preferences \{\n    section(\"Tainted input\") \{\n        input \"sensitiveData\", \"number\", required: true, title: \"Input?\"\n    }\n}\n\ndef installed() \{\n    def message = \"This contains $sensitiveData\"\n    sendSms(message)\n}";
+	flowExample =
+		"\/\/A flow-sensitive analysis will mark this example benign \npreferences \{\n    section(\"Tainted input\") \{\n        input \"sensitiveData\", \"number\", required: true, title: \"Input?\"\n    }\n}\n\ndef installed() \{\n    def message = \"This contains $sensitiveData\"\n    def message = \"This is benign\"\n    sendSms(message)\n}";
+	pathExample =
+		"preferences \{\n    section(\"Tainted input\") \{\n        input \"sensitiveData\", \"number\", required: true, title: \"Input?\"\n    }\n}\n\ndef installed() \{\n    def message = \"This contains $sensitiveData\"\n    if (x) \{\n        def message = \"This is benign\"\n    }\n    sendSms(message)\n}";
+	contextExample =
+		"\/\/A context-sensitive analysis will mark this example benign \npreferences \{\n    section(\"Tainted input\") \{\n        input \"sensitiveData\", \"number\", required: true, title: \"Input?\"\n    }\n}\n\ndef installed() \{\n    def message = \"This contains $sensitiveData\"\n    def firstCall = returnMessage(message)\n    def secondCall = returnMessage(\"no sensitive data\")\n    sendSms(secondCall)\n}\n\nprivate returnMessage(message) \{\n    return message\n}";
+</script>
